@@ -49,18 +49,25 @@ async function main() {
       create: { name: campus.name, code: campus.code, organisationId: organisation.id },
     });
 
-    await prisma.siteReadiness.upsert({
-      where: { locationId: location.id },
+    await prisma.siteReadiness.upsert({ where: { locationId: location.id }, update: {}, create: { locationId: location.id } });
+
+    const group = await prisma.screenGroup.upsert({
+      where: { name: campus.name },
       update: {},
-      create: { locationId: location.id },
+      create: { name: campus.name },
     });
 
     for (let i = 1; i <= campus.screens; i += 1) {
       const externalId = `${campus.code}-DISPLAY-${String(i).padStart(2, "0")}`;
-      await prisma.screen.upsert({
+      const screen = await prisma.screen.upsert({
         where: { externalId },
         update: { name: `${campus.name} Display ${i}`, locationId: location.id },
         create: { name: `${campus.name} Display ${i}`, externalId, locationId: location.id },
+      });
+      await prisma.screenGroupMembership.upsert({
+        where: { screenId_groupId: { screenId: screen.id, groupId: group.id } },
+        update: {},
+        create: { screenId: screen.id, groupId: group.id },
       });
     }
   }
@@ -88,13 +95,8 @@ async function main() {
     create: { email, name: "Taletso Super Administrator", passwordHash, organisationId: organisation.id, roleId: roles.get("Taletso Super Administrator") },
   });
 
-  console.log(`Seeded Taletso TVET College, ${campusDefinitions.length} locations and 12 screens.`);
+  console.log("Seeded Taletso TVET College, 4 campus display groups and 12 screens.");
   if (!process.env.SEED_ADMIN_PASSWORD) console.warn("Using development seed password. Set SEED_ADMIN_PASSWORD before shared or production deployments.");
 }
 
-main()
-  .catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-  })
-  .finally(async () => prisma.$disconnect());
+main().catch((error) => { console.error(error); process.exitCode = 1; }).finally(async () => prisma.$disconnect());
