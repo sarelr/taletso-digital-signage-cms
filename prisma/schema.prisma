@@ -1,0 +1,237 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+
+enum ScreenStatus {
+  ONLINE
+  OFFLINE
+  UNKNOWN
+}
+enum ContentStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+enum ContentType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  WEBPAGE
+}
+enum ApprovalDecision {
+  PENDING
+  APPROVED
+  REJECTED
+}
+enum ReadinessStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  READY
+  BLOCKED
+}
+enum ScheduleStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Organisation {
+  id String @id @default(cuid())
+  name String
+  locations Location[]
+  users User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Location {
+  id String @id @default(cuid())
+  name String
+  code String @unique
+  organisationId String
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  screens Screen[]
+  users User[]
+  readiness SiteReadiness?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Screen {
+  id String @id @default(cuid())
+  name String
+  externalId String? @unique
+  status ScreenStatus @default(UNKNOWN)
+  lastSeenAt DateTime?
+  locationId String
+  location Location @relation(fields: [locationId], references: [id])
+  groups ScreenGroupMembership[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model ScreenGroup {
+  id String @id @default(cuid())
+  name String @unique
+  screens ScreenGroupMembership[]
+  schedules Schedule[]
+}
+model ScreenGroupMembership {
+  screenId String
+  groupId String
+  screen Screen @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  group ScreenGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  @@id([screenId, groupId])
+}
+model User {
+  id String @id @default(cuid())
+  name String?
+  email String @unique
+  emailVerified DateTime?
+  image String?
+  passwordHash String?
+  organisationId String
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  locationId String?
+  location Location? @relation(fields: [locationId], references: [id])
+  roleId String
+  role Role @relation(fields: [roleId], references: [id])
+  content Content[]
+  approvals Approval[]
+  audits Audit[]
+  accounts Account[]
+  sessions Session[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Role {
+  id String @id @default(cuid())
+  name String @unique
+  users User[]
+  permissions RolePermission[]
+}
+model Permission {
+  id String @id @default(cuid())
+  key String @unique
+  description String
+  roles RolePermission[]
+}
+model RolePermission {
+  roleId String
+  permissionId String
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  @@id([roleId, permissionId])
+}
+model Content {
+  id String @id @default(cuid())
+  title String
+  type ContentType
+  status ContentStatus @default(DRAFT)
+  url String?
+  ownerId String
+  owner User @relation(fields: [ownerId], references: [id])
+  playlists PlaylistItem[]
+  approvals Approval[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Playlist {
+  id String @id @default(cuid())
+  name String
+  description String?
+  items PlaylistItem[]
+  schedules Schedule[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model PlaylistItem {
+  playlistId String
+  contentId String
+  position Int
+  durationSeconds Int @default(10)
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  @@id([playlistId, contentId])
+}
+model Schedule {
+  id String @id @default(cuid())
+  name String
+  status ScheduleStatus @default(DRAFT)
+  startsAt DateTime
+  endsAt DateTime
+  playlistId String
+  playlist Playlist @relation(fields: [playlistId], references: [id])
+  screenGroupId String
+  screenGroup ScreenGroup @relation(fields: [screenGroupId], references: [id])
+  externalId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Approval {
+  id String @id @default(cuid())
+  decision ApprovalDecision @default(PENDING)
+  comment String?
+  contentId String
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  approverId String
+  approver User @relation(fields: [approverId], references: [id])
+  createdAt DateTime @default(now())
+  decidedAt DateTime?
+}
+model Audit {
+  id String @id @default(cuid())
+  action String
+  entityType String
+  entityId String
+  metadata Json?
+  actorId String?
+  actor User? @relation(fields: [actorId], references: [id])
+  createdAt DateTime @default(now())
+}
+model SiteReadiness {
+  id String @id @default(cuid())
+  locationId String @unique
+  location Location @relation(fields: [locationId], references: [id])
+  power ReadinessStatus @default(NOT_STARTED)
+  network ReadinessStatus @default(NOT_STARTED)
+  mounting ReadinessStatus @default(NOT_STARTED)
+  player ReadinessStatus @default(NOT_STARTED)
+  notes String?
+  targetDate DateTime?
+  updatedAt DateTime @updatedAt
+}
+model Account {
+  id String @id @default(cuid())
+  userId String
+  type String
+  provider String
+  providerAccountId String
+  refresh_token String?
+  access_token String?
+  expires_at Int?
+  token_type String?
+  scope String?
+  id_token String?
+  session_state String?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+model Session {
+  id String @id @default(cuid())
+  sessionToken String @unique
+  userId String
+  expires DateTime
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+model VerificationToken {
+  identifier String
+  token String @unique
+  expires DateTime
+  @@unique([identifier, token])
+}

@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: taletso_signage
+      POSTGRES_USER: taletso
+      POSTGRES_PASSWORD: taletso
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taletso -d taletso_signage"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://taletso:taletso@db:5432/taletso_signage?schema=public
+      AUTH_SECRET: local-development-secret-change-before-deploy
+      AUTH_URL: http://localhost:3000
+      XIBO_BASE_URL: https://xibo.example.org
+      XIBO_CLIENT_ID: mock
+      XIBO_CLIENT_SECRET: mock
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  postgres_data:
