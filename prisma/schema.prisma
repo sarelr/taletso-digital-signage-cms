@@ -59,6 +59,7 @@ model Location {
   organisation Organisation @relation(fields: [organisationId], references: [id])
   screens Screen[]
   users User[]
+  content Content[]
   readiness SiteReadiness?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -136,10 +137,14 @@ model Content {
   url String?
   ownerId String
   owner User @relation(fields: [ownerId], references: [id])
+  locationId String?
+  location Location? @relation(fields: [locationId], references: [id])
   playlists PlaylistItem[]
   approvals Approval[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([locationId, status])
 }
 model Playlist {
   id String @id @default(cuid())
