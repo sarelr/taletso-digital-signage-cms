@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - codex/phase-2-functional-cms
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: taletso_signage
+          POSTGRES_USER: taletso
+          POSTGRES_PASSWORD: taletso
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U taletso -d taletso_signage"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://taletso:taletso@localhost:5432/taletso_signage?schema=public
+      AUTH_SECRET: ci-only-secret-change-in-production
+      AUTH_URL: http://localhost:3000
+      XIBO_MODE: mock
+      XIBO_BASE_URL: https://xibo.example.org
+      XIBO_CLIENT_ID: mock
+      XIBO_CLIENT_SECRET: mock
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npm run build
