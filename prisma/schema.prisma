@@ -60,6 +60,7 @@ model Location {
   screens Screen[]
   users User[]
   content Content[]
+  playlists Playlist[]
   readiness SiteReadiness?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -150,10 +151,14 @@ model Playlist {
   id String @id @default(cuid())
   name String
   description String?
+  locationId String?
+  location Location? @relation(fields: [locationId], references: [id])
   items PlaylistItem[]
   schedules Schedule[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([locationId])
 }
 model PlaylistItem {
   playlistId String
