@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TDCP Display Player</title>
+  <style>
+    html,body,#player{width:100%;height:100%;margin:0;background:#000;overflow:hidden}#player{display:flex;align-items:center;justify-content:center}#player img,#player video{width:100%;height:100%;object-fit:contain}#status{position:fixed;right:15px;bottom:10px;z-index:2;border-radius:4px;background:rgba(0,0,0,.65);color:#65ff9a;padding:6px 10px;font:12px Arial,sans-serif}#status.offline{color:#ffd166}
+  </style>
+</head>
+<body>
+  <div id="player" aria-live="off"></div>
+  <div id="status">TDCP · CONNECTING</div>
+  <script>
+    (() => {
+      "use strict";
+      const defaultPollSeconds = 10;
+      const requestedScreenId = new URLSearchParams(location.search).get("screenId") || "SCREEN-001";
+      const screenId = /^SCREEN-[0-9]{3}$/.test(requestedScreenId) ? requestedScreenId : "SCREEN-001";
+      const storageKey = `tdcp:last-known-good:${screenId}`;
+      const deviceKey = `tdcp:device-id:${screenId}`;
+      const playerVersion = "2.1.0-candidate";
+      const player = document.getElementById("player");
+      const status = document.getElementById("status");
+      let currentMedia = "";
+      let currentVersion = "";
+      let pollSeconds = defaultPollSeconds;
+      let lastScreenId = screenId;
+      const deviceId = (() => { try { const saved = localStorage.getItem(deviceKey); if (saved) return saved; const created = crypto.randomUUID(); localStorage.setItem(deviceKey, created); return created; } catch { return crypto.randomUUID(); } })();
+
+      function validConfiguration(value) {
+        return value && typeof value === "object" && /^SCREEN-[0-9]{3}$/.test(value.screenId) &&
+          (value.contentType === "image" || value.contentType === "video") &&
+          /^media\/[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value.media) &&
+          Number.isInteger(value.refreshSeconds) && value.refreshSeconds >= 5 && value.refreshSeconds <= 300;
+      }
+
+      function setConnectionState(screenId, connected) {
+        status.textContent = `${screenId} · ${connected ? "ONLINE" : "CMS OFFLINE · CACHED CONTENT"}`;
+        status.classList.toggle("offline", !connected);
+      }
+
+      function loadElement(config, fresh) {
+        return new Promise((resolve, reject) => {
+          const element = document.createElement(config.contentType === "video" ? "video" : "img");
+          const mediaUrl = `/player/${config.media}`;
+          const source = fresh ? `${mediaUrl}?v=${encodeURIComponent(config.configurationVersion || Date.now())}` : mediaUrl;
+          if (element instanceof HTMLVideoElement) {
+            element.autoplay = true; element.muted = true; element.loop = true; element.playsInline = true;
+            element.addEventListener("loadeddata", () => resolve(element), { once:true });
+          } else {
+            element.alt = "TDCP display content";
+            element.addEventListener("load", () => resolve(element), { once:true });
+          }
+          element.addEventListener("error", () => reject(new Error("Assigned media could not be loaded.")), { once:true });
+          element.src = source;
+        });
+      }
+
+      async function render(config, fresh) {
+        if (config.media === currentMedia && config.configurationVersion === currentVersion && player.firstElementChild) return;
+        const element = await loadElement(config, fresh);
+        player.replaceChildren(element);
+        currentMedia = config.media;
+        currentVersion = config.configurationVersion || "legacy";
+        try { localStorage.setItem(storageKey, JSON.stringify(config)); }
+        catch (error) { console.error("Last-known-good configuration could not be persisted", error); }
+      }
+
+      async function restoreCachedConfiguration() {
+        try {
+          const cached = JSON.parse(localStorage.getItem(storageKey) || "null");
+          if (!validConfiguration(cached)) return;
+          pollSeconds = cached.refreshSeconds;
+          await render(cached, false);
+          setConnectionState(cached.screenId, false);
+        } catch (error) { console.error("Cached configuration unavailable", error); }
+      }
+
+      async function synchronize() {
+        try {
+          const response = await fetch(`/player/${screenId.toLowerCase()}.json?t=${Date.now()}`, { cache:"no-store" });
+          if (!response.ok) throw new Error(`Configuration returned HTTP ${response.status}.`);
+          const config = await response.json();
+          if (!validConfiguration(config) || config.screenId !== screenId) throw new Error("Configuration validation failed.");
+          await render(config, true);
+          pollSeconds = config.refreshSeconds;
+          lastScreenId = config.screenId;
+          setConnectionState(config.screenId, true);
+        } catch (error) {
+          setConnectionState(screenId, false);
+          console.error("TDCP synchronization failed; retaining last known good content", error);
+        } finally { window.setTimeout(synchronize, pollSeconds * 1000); }
+      }
+
+      async function heartbeat() {
+        try {
+          await fetch("/api/player/heartbeat", { method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({ screenId:lastScreenId, deviceId, playerVersion, currentMedia:currentMedia || null }), cache:"no-store" });
+        } catch (error) { console.error("TDCP heartbeat failed", error); }
+        finally { window.setTimeout(heartbeat, 30000); }
+      }
+
+      restoreCachedConfiguration().finally(() => { synchronize(); heartbeat(); });
+    })();
+  </script>
+</body>
+</html>

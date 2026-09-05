@@ -1,0 +1,32 @@
+services:
+  tdcp-phase2-candidate:
+    build:
+      context: .
+      target: runner
+    container_name: tdcp-phase2-candidate
+    restart: unless-stopped
+    ports:
+      - "8083:3000"
+    env_file:
+      - ../.env
+    environment:
+      TDCP_PLAYER_ROOT: /tdcp/player
+      TDCP_BACKUP_ROOT: /tdcp/backups
+      TDCP_CANDIDATE_INDEX: /app/candidate-player/index.html
+    volumes:
+      - ./player-runtime:/tdcp/player
+      - ./backups:/tdcp/backups
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+  tdcp-phase2-tools:
+    build:
+      context: .
+      target: builder
+    profiles: ["tools"]
+    env_file:
+      - ../.env

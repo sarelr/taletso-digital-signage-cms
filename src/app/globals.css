@@ -1,0 +1,18 @@
+@import "tailwindcss";
+:root {
+  --taletso-black: #111111;
+  --taletso-gold: #f2b705;
+  --taletso-gold-dark: #b97800;
+  --taletso-blue: #62b7df;
+  --taletso-green: #078c35;
+  --taletso-red: #d71920;
+  --navy: var(--taletso-black);
+  --gold: var(--taletso-gold);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #f7f7f5; color: #191919; font-family: Arial, Helvetica, sans-serif; }
+button, input, select { font: inherit; }
+.mono { font-family: "Cascadia Code", Consolas, monospace; }
+.card { border: 1px solid #e2dfd6; border-radius: 16px; background: white; box-shadow: 0 8px 30px rgba(17,17,17,.06); }
+.taletso-focus:focus { border-color: var(--taletso-gold-dark); box-shadow: 0 0 0 3px rgba(242,183,5,.18); }
+@media (max-width: 1023px) { .desktop-nav { display: none; } .portal-main { margin-left: 0 !important; } }

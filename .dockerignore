@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+.env*
+!.env.example
+taletso-app
+dist
+.preview
+server.*.log

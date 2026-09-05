@@ -1,0 +1,27 @@
+import Link from "next/link";
+import { ArrowRight, CheckCircle2, Clock3, MonitorCheck, RadioTower, WifiOff } from "lucide-react";
+import { getDb } from "@/lib/db";
+import { heartbeatOnlineWindowMs, heartbeatSnapshot, isHeartbeatOnline } from "@/lib/heartbeat";
+import { managedScreenIds } from "@/lib/screen-estate";
+
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage() {
+  const db=getDb(); const snapshot=heartbeatSnapshot(); const cutoff=new Date(snapshot-heartbeatOnlineWindowMs);
+  const [screens,locations,contentCount,schedules,audits]=await Promise.all([
+    db.screen.findMany({where:{externalId:{in:managedScreenIds}},select:{id:true,lastHeartbeatAt:true}}),
+    db.location.findMany({include:{screens:{where:{externalId:{in:managedScreenIds}},select:{lastHeartbeatAt:true}}},orderBy:{name:"asc"}}),
+    db.content.count({where:{status:"APPROVED"}}),
+    db.schedule.count({where:{status:"ACTIVE"}}),
+    db.audit.findMany({orderBy:{createdAt:"desc"},take:5,include:{actor:true}}),
+  ]);
+  const online=screens.filter(item=>isHeartbeatOnline(item.lastHeartbeatAt,snapshot)).length; const offline=screens.length-online;
+  const stats=[["Registered screens",String(screens.length),"Database records"],["Online",String(online),"Heartbeat within 90 seconds"],["Offline",String(offline),"No recent heartbeat"],["Approved media",String(contentCount),"Available to publish"],["Active schedules",String(schedules),"Database-backed"]];
+  return <div className="p-5 lg:p-8"><div className="mb-7"><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#a66b12]">TDCP deployment control</p><h1 className="mt-2 text-3xl font-bold text-[#07172c]">12-screen rollout overview</h1><p className="mt-2 text-slate-500">Live estate health, publishing activity, and controlled commissioning progress.</p></div>
+    <section className="mb-6 overflow-hidden rounded-2xl bg-[#07172c] text-white"><div className="flex flex-wrap items-center justify-between gap-5 p-5 lg:p-6"><div className="flex items-start gap-4"><span className="rounded-xl bg-emerald-400/15 p-3 text-emerald-300"><CheckCircle2 size={24}/></span><div><p className="text-xs font-bold uppercase tracking-widest text-[#e4ac45]">Phase 2 pilot connected</p><h2 className="mt-1 text-xl font-bold">SCREEN-001 is ready for managed publishing</h2><p className="mt-1 text-sm text-slate-300">The Phase 2 player URL and heartbeat path have been physically confirmed.</p></div></div><Link href="/screens/SCREEN-001" className="flex items-center gap-2 rounded-xl bg-[#e4ac45] px-4 py-2.5 text-sm font-bold text-[#07172c]">Manage Screen 001 <ArrowRight size={17}/></Link></div><div className="grid border-t border-white/10 bg-white/5 sm:grid-cols-3"><div className="p-4 lg:px-6"><p className="text-xs uppercase tracking-wider text-slate-400">Pilot connection</p><p className="mt-1 font-bold text-emerald-300">Confirmed</p></div><div className="border-white/10 p-4 sm:border-l lg:px-6"><p className="text-xs uppercase tracking-wider text-slate-400">Approved estate</p><p className="mt-1 font-bold">12 screens</p></div><div className="border-white/10 p-4 sm:border-l lg:px-6"><p className="text-xs uppercase tracking-wider text-slate-400">Next rollout stage</p><p className="mt-1 font-bold text-[#f4c86f]">11 screens to commission</p></div></div></section>
+    <section className="mb-6 flex items-start gap-3 rounded-2xl border border-[#e4ac45]/40 bg-[#fff9ed] p-4 text-sm text-[#69450f]"><RadioTower className="mt-0.5 shrink-0" size={19}/><p><strong>Live status remains heartbeat-driven.</strong> A commissioned screen appears online only while its player has contacted TDCP during the last 90 seconds.</p></section>
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">{stats.map(([label,value,note])=><article key={label} className="card p-5"><p className="text-sm font-medium text-slate-500">{label}</p><p className="mono mt-3 text-3xl font-bold text-[#07172c]">{value}</p><p className="mt-2 text-xs text-slate-400">{note}</p></article>)}</section>
+    <div className="mt-7 grid gap-6 xl:grid-cols-[1.7fr_1fr]"><section><h2 className="mb-3 text-lg font-bold text-[#07172c]">Site estate</h2><div className="grid gap-4 sm:grid-cols-2">{locations.map(location=>{const siteOnline=location.screens.filter(screen=>screen.lastHeartbeatAt&&screen.lastHeartbeatAt>=cutoff).length;return <article key={location.id} className="card p-5"><p className="font-bold text-[#07172c]">{location.name}</p><p className="mono text-xs text-slate-400">{location.code} · {location.screens.length} displays</p><div className="mt-5 flex gap-5 text-sm"><span className="flex items-center gap-2 text-emerald-700"><MonitorCheck size={17}/>{siteOnline} online</span>{location.screens.length-siteOnline>0&&<span className="flex items-center gap-2 text-rose-600"><WifiOff size={17}/>{location.screens.length-siteOnline} offline</span>}</div></article>})}</div></section>
+    <section><h2 className="mb-3 text-lg font-bold text-[#07172c]">Recent activity</h2><div className="card divide-y divide-slate-100">{audits.map(event=><div key={event.id} className="flex gap-3 p-4"><Clock3 size={18} className="mt-1 text-[#b07822]"/><div><p className="text-sm font-medium">{event.action}</p><p className="mt-1 text-xs text-slate-400">{event.actor?.name??event.actor?.email??"System"} · {event.createdAt.toLocaleString("en-ZA")}</p></div></div>)}{audits.length===0&&<p className="p-5 text-sm text-slate-500">No audit activity recorded.</p>}</div></section></div>
+  </div>;
+}

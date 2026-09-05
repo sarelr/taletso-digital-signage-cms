@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <rect width="1920" height="1080" fill="#07172c"/>
+  <rect x="80" y="80" width="1760" height="920" rx="36" fill="#0d3153" stroke="#e4ac45" stroke-width="10"/>
+  <text x="960" y="430" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="112" font-weight="700">TDCP MEDIA UPLOAD</text>
+  <text x="960" y="590" text-anchor="middle" fill="#e4ac45" font-family="Arial, sans-serif" font-size="70" font-weight="700">MILESTONE 2 VALIDATION</text>
+  <text x="960" y="735" text-anchor="middle" fill="#a7f3d0" font-family="Arial, sans-serif" font-size="52">SCREEN-001 • LOCAL CMS • APPROVED MEDIA</text>
+</svg>
