@@ -27,10 +27,10 @@ export default async function ForgotPasswordPage({ searchParams }: Props) {
         <img src="/taletso-logo.jpg" alt="Taletso TVET College logo" className="mx-auto h-24 w-24 rounded-full object-cover" />
         <h1 id="forgot-heading" className="mt-5 text-center text-3xl font-bold">Forgot password</h1>
         {sent ? (
-          <p role="status" className="mt-5 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">If an account matches that email, a reset link has been sent. Check your inbox and spam folder.</p>
+          <p role="status" className="mt-5 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">If an account matches that email, a password-reset link has been sent to its registered mobile number.</p>
         ) : (
           <form action={submit} className="mt-6 space-y-4">
-            <p className="text-sm text-slate-600">Enter your assigned account email. The reset link will expire after 30 minutes.</p>
+            <p className="text-sm text-slate-600">Enter your assigned account email. A reset link will be sent to your registered mobile number and expires after 30 minutes.</p>
             <label className="block text-sm font-semibold text-slate-700">Email
               <input name="email" type="email" autoComplete="email" required className="taletso-focus mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal outline-none" />
             </label>

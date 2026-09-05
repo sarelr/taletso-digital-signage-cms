@@ -11,7 +11,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       authorize: async (credentials) => {
         const parsed = z.object({
           email: z.string().email(),
-          password: z.string().min(12),
+          password: z.string().min(8),
         }).safeParse(credentials);
         if (!parsed.success) return null;
 

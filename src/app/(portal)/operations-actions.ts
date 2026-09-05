@@ -34,13 +34,29 @@ export async function decideApproval(formData: FormData) {
 export async function createUser(formData: FormData) {
   const actor = await actorWithPermission("users.manage");
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const mobileNumber = normalizeSouthAfricanMobile(String(formData.get("mobileNumber") ?? ""));
   const password = String(formData.get("password") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const roleId = String(formData.get("roleId") ?? "");
   const locationId = String(formData.get("locationId") ?? "") || null;
-  if (!email.includes("@") || password.length < 12 || !name || !roleId) throw new Error("Name, valid email, role and a 12-character password are required.");
-  const user = await getDb().user.create({ data: { email, name, passwordHash: await hash(password, 12), roleId, locationId, organisationId: actor.organisationId } });
-  await audit("user.created", "User", user.id, actor.id, { email, roleId, locationId });
+  if (!email.includes("@") || password.length < 12 || !name || !roleId || !mobileNumber) throw new Error("Name, valid email, South African mobile number, role and a 12-character password are required.");
+  const user = await getDb().user.create({ data: { email, name, mobileNumber, passwordHash: await hash(password, 12), roleId, locationId, organisationId: actor.organisationId } });
+  await audit("user.created", "User", user.id, actor.id, { email, mobileNumber, roleId, locationId });
+  revalidatePath("/users");
+}
+
+function normalizeSouthAfricanMobile(value: string) {
+  const digits = value.replace(/\D/g, "").replace(/^0/, "27");
+  return /^27[1-9]\d{8}$/.test(digits) ? digits : null;
+}
+
+export async function updateUserMobile(formData: FormData) {
+  const actor = await actorWithPermission("users.manage");
+  const userId = String(formData.get("userId") ?? "");
+  const mobileNumber = normalizeSouthAfricanMobile(String(formData.get("mobileNumber") ?? ""));
+  if (!userId || !mobileNumber) throw new Error("Enter a valid South African mobile number.");
+  await getDb().user.update({ where: { id: userId }, data: { mobileNumber } });
+  await audit("user.mobile.updated", "User", userId, actor.id, { mobileNumber });
   revalidatePath("/users");
 }
 

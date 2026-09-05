@@ -167,6 +167,7 @@ model User {
   emailVerified  DateTime?
   image          String?
   passwordHash   String?
+  mobileNumber   String?      @unique
   organisationId String
   organisation   Organisation @relation(fields: [organisationId], references: [id])
   locationId     String?

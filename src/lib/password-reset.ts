@@ -33,11 +33,25 @@ function mailTransport() {
   });
 }
 
+async function sendWinSmsReset(mobileNumber: string, resetUrl: URL, clientMessageId: string) {
+  const apiKey = process.env.WINSMS_API_KEY;
+  if (!apiKey) return false;
+  const message = `Taletso password reset: ${resetUrl.toString()} Expires in 30 minutes.`;
+  const response = await fetch("https://api.winsms.co.za/api/rest/v1/sms/outgoing/send", {
+    method: "POST",
+    headers: { AUTHORIZATION: apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify({ message, recipients: [{ mobileNumber, clientMessageId }], maxSegments: 2 }),
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`WinSMS rejected the reset request (${response.status}).`);
+  return true;
+}
+
 export async function requestPasswordReset(email: string) {
   const db = getDb();
   const user = await db.user.findUnique({
     where: { email: email.trim().toLowerCase() },
-    select: { id: true, email: true, name: true },
+    select: { id: true, email: true, name: true, mobileNumber: true },
   });
   if (!user) return;
 
@@ -46,6 +60,8 @@ export async function requestPasswordReset(email: string) {
     select: { id: true },
   });
   if (recent) return;
+
+  if (process.env.WINSMS_API_KEY && !user.mobileNumber) return;
 
   const rawToken = randomBytes(32).toString("base64url");
   const resetToken = await db.passwordResetToken.create({
@@ -60,6 +76,7 @@ export async function requestPasswordReset(email: string) {
   resetUrl.searchParams.set("token", rawToken);
 
   try {
+    if (user.mobileNumber && await sendWinSmsReset(user.mobileNumber, resetUrl, resetToken.id)) return;
     await mailTransport().sendMail({
       from: process.env.SMTP_FROM,
       to: user.email,

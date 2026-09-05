@@ -51,7 +51,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 Forgot password?
               </Link>
             </span>
-            <input name="password" type="password" autoComplete="current-password" minLength={12} required className="taletso-focus mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal outline-none" />
+            <input name="password" type="password" autoComplete="current-password" minLength={8} required className="taletso-focus mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal outline-none" />
           </label>
           <button type="submit" className="w-full rounded-xl border border-[#a66d00] bg-[#f2b705] px-4 py-3 text-sm font-bold text-[#111111] shadow-sm hover:bg-[#ffd12a]">Sign in securely</button>
         </form>
