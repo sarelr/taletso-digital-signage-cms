@@ -11,7 +11,7 @@
     "prisma:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "node prisma/seed.mjs",
-    "test:publisher": "node --experimental-default-type=module --test --experimental-strip-types tests/player-publisher.test.ts tests/media-validation.test.ts tests/screen-estate.test.ts tests/external-access-readiness.test.ts",
+    "test:publisher": "node --experimental-default-type=module --test --experimental-strip-types tests/player-publisher.test.ts tests/media-validation.test.ts tests/screen-estate.test.ts tests/external-access-readiness.test.ts tests/base44-integration.test.ts",
     "verify": "npm run prisma:generate && npm run lint && tsc --noEmit && npm run build"
   },
   "dependencies": {

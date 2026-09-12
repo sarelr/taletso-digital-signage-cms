@@ -40,6 +40,14 @@ The current approved scope is `SCREEN-001` through `SCREEN-012`. Each screen has
 
 Uploads accept JPG, PNG, WEBP, safe SVG and MP4 up to 100 MB. File signatures are verified; extensions are not trusted. SVG scripts, event handlers, external references and foreign objects are rejected. Stored filenames are random UUIDs under the candidate `player-runtime/media` directory. Clients never receive arbitrary filesystem paths.
 
+## Base44 content intake
+
+`POST /api/integrations/base44/content` accepts an authenticated reference to an existing Base44 `Announcement`, `GalleryImage`, `LiveStream` or published `PublicFeedPost`. `BASE44_INTEGRATION_SECRET` must be a random value of at least 32 characters and `BASE44_IMPORT_OWNER_EMAIL` must identify an existing TDCP service owner. Credentials stay in the deployment environment and are never stored in Base44 records or source control.
+
+Records are keyed by Base44 source type and record ID, so retries update the same TDCP item instead of creating duplicates. Every change is audited and forced to `DRAFT`; import can never approve, schedule or publish content. The existing four-eye workflow remains authoritative.
+
+Because TDCP is hosted inside the college network, its primary integration direction is outbound: an authorized TDCP operator uses **Settings → Sync Base44 content** to pull from `BASE44_PUBLIC_APP_URL`. This avoids opening an inbound route through the college firewall. The authenticated inbound endpoint remains available for a future approved HTTPS deployment.
+
 ## Reliability
 
 - Configuration publication validates the full payload, verifies the media exists, obtains a per-screen lock, backs up the previous valid configuration and atomically renames the new file.

@@ -230,6 +230,10 @@ model Content {
   originalFilename String?
   mimeType          String?
   fileSize          Int?
+  sourceSystem      String?
+  sourceType        String?
+  sourceId          String?
+  sourceUpdatedAt   DateTime?
   ownerId   String
   owner     User           @relation(fields: [ownerId], references: [id])
   playlists PlaylistItem[]
@@ -238,6 +242,8 @@ model Content {
   publications   Publication[]
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
+
+  @@unique([sourceSystem, sourceType, sourceId])
 }
 
 model Publication {
